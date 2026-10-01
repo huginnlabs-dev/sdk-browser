@@ -18,6 +18,8 @@ export interface ResolvedConfig {
   maxBreadcrumbs: number;
   flushInterval: number;
   maxBatchSize: number;
+  replay: boolean;
+  replaySampleRate: number;
   debug: boolean;
 }
 
@@ -28,6 +30,11 @@ export interface RuntimeState {
   traceId: string;
   /** Sampling decision — rolled once per page load, never re-rolled. */
   sampled: boolean;
+  /**
+   * Session Replay sampling decision — rolled once per page load,
+   * independently of `sampled` (a page can be traced but not recorded).
+   */
+  replaySampled: boolean;
   seq: number;
   /** span_id of the current PAGE_VIEW span (parent of http/error spans). */
   currentViewSpanId?: string;
@@ -42,6 +49,7 @@ export const state: RuntimeState = {
   started: false,
   traceId: '',
   sampled: true,
+  replaySampled: false,
   seq: 0,
   lastRouteChangeTs: 0,
 };
@@ -71,6 +79,8 @@ export function resolveConfig(opts: Partial<DataflowOptions>): ResolvedConfig {
     maxBreadcrumbs: Math.max(0, Math.floor(clampNumber(opts.maxBreadcrumbs ?? 20, 0, 1000, 20))),
     flushInterval: Math.max(10, Math.floor(clampNumber(opts.flushInterval ?? 2000, 10, 3_600_000, 2000))),
     maxBatchSize: Math.max(1, Math.floor(clampNumber(opts.maxBatchSize ?? 20, 1, 1000, 20))),
+    replay: opts.replay === true,
+    replaySampleRate: clampNumber(opts.replaySampleRate ?? 1, 0, 1, 1),
     debug: opts.debug === true,
   };
 }
@@ -81,14 +91,16 @@ function clampNumber(v: number, min: number, max: number, fallback: number): num
 }
 
 /**
- * Initialize runtime state for a fresh page load. Sampling is rolled HERE,
- * exactly once, so every event in this session shares the same decision.
+ * Initialize runtime state for a fresh page load. Both sampling decisions are
+ * rolled HERE, exactly once each, so every event in this session shares the
+ * same decision. Trace sampling and replay sampling are independent rolls.
  */
 export function bootstrapState(config: ResolvedConfig): void {
   state.config = config;
   state.started = true;
   state.traceId = newTraceId();
   state.sampled = rollSampling(config.sampleRate);
+  state.replaySampled = rollSampling(config.replaySampleRate);
   state.seq = 0;
   state.currentViewSpanId = undefined;
   state.currentUrl = undefined;

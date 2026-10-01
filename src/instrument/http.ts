@@ -1,6 +1,6 @@
 import { state } from '../config';
 import { emitEvent } from '../events';
-import { isIngestUrl } from '../ingest';
+import { isOwnEndpoint } from '../ingest';
 import { newSpanId } from '../ids';
 import { addTeardown } from '../patch';
 import { META, TRACE_HEADER } from '../version';
@@ -21,7 +21,7 @@ interface WrappedFetch {
 export function traceEligible(u: URL): boolean {
   const cfg = state.config;
   if (!cfg || !cfg.traceHeader) return false;
-  if (isIngestUrl(u)) return false;
+  if (isOwnEndpoint(u)) return false;
   if (u.origin === location.origin) return true;
   return cfg.allowedTraceOrigins.includes(u.origin);
 }
@@ -49,7 +49,7 @@ function installFetch(): void {
       return original.call(this === undefined ? globalThis : this, input, init);
     }
     const u = toURL(input instanceof Request ? input.url : String(input));
-    if (!u || isIngestUrl(u)) {
+    if (!u || isOwnEndpoint(u)) {
       // Never trace (or add spans for) our own beacons — no self-tracing loops.
       return original.call(this === undefined ? globalThis : this, input, init);
     }
@@ -104,7 +104,7 @@ function emitHttpSpan(
 ): void {
   const cfg = state.config;
   if (!cfg || cfg.disableHttp || !state.started) return;
-  if (isIngestUrl(u)) return; // central self-tracing guard (covers XHR too)
+  if (isOwnEndpoint(u)) return; // central self-tracing guard (covers XHR too)
 
   emitEvent({
     type: 'HTTP_CLIENT',

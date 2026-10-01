@@ -45,7 +45,7 @@ describe('init', () => {
     expect(api).toBe(dataflow);
     expect(typeof api.init).toBe('function');
     expect(typeof api.flush).toBe('function');
-    expect(api.version).toBe('0.1.0');
+    expect(api.version).toBe('0.2.0');
     expect(api.traceId()).toMatch(/^[0-9a-f]{32}$/);
     expect(api.isSampled()).toBe(true);
   });

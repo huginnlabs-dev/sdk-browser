@@ -2,10 +2,11 @@
 
 HuginnLabs Dataflow Browser SDK — real-user monitoring (RUM) for web apps: page
 views, outgoing HTTP spans with cross-stack trace propagation, JS error capture,
-Web Vitals and click breadcrumbs. Zero runtime dependencies, dual ESM/CJS
-(+ IIFE for script tags), TypeScript-first.
+Web Vitals, click breadcrumbs and opt-in Session Replay. Zero runtime
+dependencies in the core bundle, dual ESM/CJS (+ IIFE for script tags),
+TypeScript-first.
 
-**Version 0.1.0** — see [Versioning](#versioning).
+**Version 0.2.0** — see [Versioning](#versioning).
 
 ## Install
 
@@ -54,6 +55,7 @@ disable flags and friends are re-read live; a new trace id is never rolled).
 | JS errors | `FUNCTION_CALL` | `browser.error` | `window.onerror` (via the `error` event) + `unhandledrejection`. `status_code: 500`, `error.message` (<= 500 chars), `error.stack` (<= 8192 chars), `error.source` (`file:line:col`), plus click breadcrumbs. |
 | Web Vitals | metadata on the page-load span | `webvital.lcp`, `webvital.fid`, `webvital.cls`, `webvital.ttfb` | Hand-rolled via `PerformanceObserver` — no `web-vitals` dependency. FID is the raw first-input delay; INP-style attribution is a roadmap item (when a page sees no interaction before flush, no FID is reported). |
 | Click breadcrumbs | metadata on error spans | `breadcrumbs` | Capture-phase click listener; last N (default 20) entries as a JSON array of `{ label: "tag#id:text", timestamp }`. Attached **only** to error spans — never sent on their own. |
+| Session Replay (opt-in) | rrweb events → `/api/v1/replay` | — | Separate stream keyed by the page-load trace id. Off by default; sampled independently; privacy-masked. See [Session Replay](#session-replay). |
 
 Browser spans never carry payloads (the encrypted `payload` block is a
 server-side / backend-SDK feature).
@@ -92,6 +94,62 @@ its trace id, so a backend span can exist even when the browser drops its own.
 - The transport never throws into the host app and never blocks the UI thread:
   every network failure is swallowed (the batch is dropped).
 
+## Session Replay
+
+Session Replay records the DOM with [rrweb](https://github.com/rrweb-io/rrweb) so
+a player can reconstruct what a sampled user actually saw — including SPA route
+changes (rrweb's full snapshot + DOM mutations cover navigation; no extra
+instrumentation). It is **opt-in and off by default**:
+
+```ts
+dataflow.init({
+  endpoint: 'https://dataflow.example.com',
+  apiKey: 'df_your_project_key',
+  replay: true,          // opt-in — default false
+  replaySampleRate: 0.2, // record 20% of page loads (independent of sampleRate)
+});
+```
+
+How it works:
+
+- **Dynamic load.** rrweb is imported dynamically, so your core bundle never
+  pays for it. If the dynamic import fails (not bundled / blocked by an
+  extension), replay degrades silently: it stays off for the page and emits a
+  single console warning. The script-tag (IIFE) build cannot resolve a bare
+  `rrweb` specifier — provide an import map if you need replay there.
+- **Sampling.** `replaySampleRate` (default 1) is rolled once per page load,
+  independently of `sampleRate` — a page load can be traced but not recorded,
+  and vice versa. One recording stream per page load, keyed by the root trace
+  id (`traceId()`), so a replay lines up with the trace timeline in the UI.
+- **Batching.** Events buffer in memory (hard cap 3000, oldest dropped) and
+  flush to `POST <endpoint>/api/v1/replay` every 3s, at 200 buffered events,
+  or on page hide (fetch keepalive, ≤500 events per POST per the server
+  contract). Flush failures retry once, then the batch is dropped.
+
+**Privacy defaults (fixed, not configurable):**
+
+| rrweb option | Default | Effect |
+|---|---|---|
+| `maskAllInputs` | `true` | Every `<input>`/`<textarea>`/`<select>` value is replaced with `*` in the recording. |
+| `maskTextClass` | `df-mask` | Text inside elements with class `df-mask` is replaced with `***`. |
+| `blockClass` | `df-block` | Elements with class `df-block` are **not recorded at all** (played back as an empty placeholder). |
+| `inlineImages` | `false` | Image bytes are never embedded in the payload. |
+
+**Operators: add `df-block` to sensitive widgets** — payment forms, iframes
+(support chat, 3-D Secure), personal-data panels. Unlike masking, blocked
+subtrees never leave the browser. Use `df-mask` where layout matters but the
+text itself is sensitive (e.g. rendered account numbers).
+
+**Retention / storage.** Replay payloads are stored server-side under the
+trace id and expire according to the Dataflow server's retention (TTL)
+configuration — rrweb recordings are personal data under GDPR, so set a
+retention window you can defend and keep it shorter than for ordinary traces.
+
+**Lossy by design.** Recording deliberately never blocks the app and never
+retries more than once: a full buffer (3000), a failed flush, or a keepalive
+payload over the browser's 64 KiB page-hide cap all drop events rather than
+queue them. Replays are representative, not archival.
+
 ## Options
 
 | Option | Type | Default | Description |
@@ -110,6 +168,8 @@ its trace id, so a backend span can exist even when the browser drops its own.
 | `maxBreadcrumbs` | `number` | `20` | Breadcrumb trail length. |
 | `flushInterval` | `number` | `2000` | Batch flush interval (ms). |
 | `maxBatchSize` | `number` | `20` | Queue size that triggers an immediate flush. |
+| `replay` | `boolean` | `false` | Opt-in Session Replay via rrweb (dynamically imported — see [Session Replay](#session-replay)). |
+| `replaySampleRate` | `number` | `1` | Fraction of page loads recorded when `replay` is on, `0..1`. Rolled once per page load, independent of `sampleRate`. |
 | `debug` | `boolean` | `false` | Log emitted spans to the console. |
 
 All `disable*` flags are evaluated at event time, so a later `init()` merge can
@@ -128,6 +188,11 @@ toggle instrumentation on a running page.
 - The SDK sends data only to the configured `endpoint` with the project's API
   key. Sampling (`sampleRate`) is the coarsest lever: at `0.5`, half of all
   page loads send nothing at all.
+- **Session Replay** (when explicitly enabled) records the DOM — masked per
+  the [fixed privacy defaults](#session-replay), but still potentially
+  sensitive (URLs, dynamically rendered text outside `df-mask`). It has its
+  own sampling knob (`replaySampleRate`) and server-side retention; see the
+  Session Replay section before turning it on.
 
 ## CORS
 
@@ -146,7 +211,8 @@ only to build/test the package.
 ## Versioning
 
 SemVer: MAJOR for breaking API/wire changes, MINOR for backward-compatible
-features, PATCH for fixes. This release: **0.1.0**.
+features, PATCH for fixes. This release: **0.2.0** (added opt-in Session
+Replay via rrweb).
 
 ## Development
 

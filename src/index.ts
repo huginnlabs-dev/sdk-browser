@@ -7,6 +7,7 @@ import { instrumentHistory, currentUrlString, onRouteChange } from './instrument
 import { instrumentHttp } from './instrument/http';
 import { startVitals } from './instrument/vitals';
 import { runTeardowns } from './patch';
+import { maybeStartReplay, resetReplay } from './replay';
 import { flush as flushTransport, flushKeepalive, queueSnapshot, resetTransport, startTransport } from './transport';
 import type { DataflowOptions } from './types';
 import { VERSION } from './version';
@@ -81,6 +82,11 @@ function start(): void {
   }
 
   startTransport();
+
+  // Opt-in Session Replay: starts only when `replay` is on AND this page load
+  // was sampled (independent roll). rrweb loads dynamically — a failure here
+  // degrades silently and never affects tracing.
+  maybeStartReplay();
 }
 
 function init(options: Partial<DataflowOptions>): DataflowApi {
@@ -104,6 +110,9 @@ function init(options: Partial<DataflowOptions>): DataflowApi {
       throw new Error('[dataflow] init: "endpoint" and "apiKey" are required');
     }
     state.config = merged;
+    // A re-init merge can toggle `replay` on for a running page (the sample
+    // was already rolled once at first init — never re-rolled).
+    maybeStartReplay();
   }
 
   return publicApi;
@@ -136,10 +145,12 @@ export const __internals = {
 export function __resetForTests(): void {
   runTeardowns();
   resetTransport();
+  resetReplay();
   state.config = null;
   state.started = false;
   state.traceId = '';
   state.sampled = true;
+  state.replaySampled = false;
   state.seq = 0;
   state.currentViewSpanId = undefined;
   state.currentUrl = undefined;

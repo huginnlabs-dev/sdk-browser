@@ -59,6 +59,19 @@ export interface DataflowOptions {
   flushInterval?: number;
   /** Flush when the queue reaches this many events. Default 20. */
   maxBatchSize?: number;
+  /**
+   * Opt-in Session Replay (rrweb). Default false. When enabled, rrweb is
+   * loaded dynamically (never part of the core bundle) and rrweb events are
+   * batched to `<endpoint>/api/v1/replay` under the page-load trace id.
+   * Inputs are masked and `df-block` / `df-mask` elements are redacted —
+   * see the README "Session Replay" section before enabling.
+   */
+  replay?: boolean;
+  /**
+   * Fraction of page loads recorded when `replay` is on, 0..1 (clamped).
+   Rolled once per page load, independently of `sampleRate`. Default 1.
+   */
+  replaySampleRate?: number;
   /** Log emitted events to the console. Default false. */
   debug?: boolean;
 }
