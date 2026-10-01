@@ -1,0 +1,46 @@
+{
+  "name": "@huginnlabs/dataflow-browser",
+  "version": "0.1.0",
+  "description": "HuginnLabs Dataflow Browser SDK — page views, fetch/XHR spans with trace propagation, JS errors, web vitals, click breadcrumbs.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "dataflow",
+    "tracing",
+    "observability",
+    "browser",
+    "rum",
+    "huginnlabs"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "happy-dom": "^20.14.5",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.3"
+  }
+}
