@@ -42,6 +42,15 @@ function start(): void {
 
   // Web Vitals write into the page-load span's metadata as they arrive.
   const vitalsMeta: Record<string, unknown> = {};
+  try {
+    // Environment facts for the session explorer: user agent, locale and
+    // viewport ride the page-load span (metadata is string-only).
+    vitalsMeta['agent.ua'] = navigator.userAgent;
+    vitalsMeta['agent.lang'] = navigator.language || '';
+    vitalsMeta['agent.viewport'] = `${window.innerWidth}x${window.innerHeight}`;
+  } catch {
+    /* metadata is best-effort */
+  }
   startVitals(vitalsMeta);
 
   // Page-load span: opened now, ended on window load (or immediately if the
@@ -60,9 +69,13 @@ function start(): void {
     const duration = Math.max(0, nowMs() - pageLoadStart);
     state.lastRouteChangeTs = nowMs();
     if (!cfg.disablePageViews && state.sampled) {
+      // The name is the INIT pathname: an SPA route change before window
+      // load must not rename the page-load span (route changes emit their
+      // own PAGE_VIEW spans).
+      const initPathname = (state.currentUrl || currentUrlString()).split('#')[0].split('?')[0];
       emitEvent({
         type: 'PAGE_VIEW',
-        name: `VIEW ${location.pathname}`,
+        name: `VIEW ${initPathname}`,
         span_id: loadSpanId,
         parent_span_id: null, // root span of the page-load trace
         duration_ms: duration,

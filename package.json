@@ -1,6 +1,6 @@
 {
   "name": "@huginnlabs/dataflow-browser",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "HuginnLabs Dataflow Browser SDK — page views, fetch/XHR spans with trace propagation, JS errors, web vitals, click breadcrumbs, opt-in Session Replay.",
   "type": "module",
   "main": "./dist/index.cjs",
