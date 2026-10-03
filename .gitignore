@@ -1,5 +1,7 @@
 node_modules/
-dist/
+# dist/ is COMMITTED: the parent console consumes this repo as a file:
+# dependency (submodule checkout) and must resolve main/module/exports
+# without a build step. Rebuild + recommit when the source changes.
 coverage/
 *.log
 *.tmp.*
