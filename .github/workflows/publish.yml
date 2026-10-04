@@ -42,6 +42,14 @@ jobs:
       - name: install
         run: npm ci --no-audit --no-fund
 
+      # Socket supply-chain scan of the install tree (socket.dev).
+      # Advisory for now; drop continue-on-error to make it blocking.
+      - name: socket supply-chain scan
+        continue-on-error: true
+        run: npx -y @socketsecurity/cli@latest socket test npm ci
+        env:
+          SOCKET_SECURITY_API_KEY: ${{ secrets.SOCKET_SECURITY_API_KEY }}
+
       - name: build + publish (prepublishOnly builds dist)
         run: npm publish --access public --provenance
         env:
