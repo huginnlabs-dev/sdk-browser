@@ -1,4 +1,5 @@
 # @huginnlabs/dataflow-browser
+[![Socket Badge](https://badge.socket.dev/npm/package/@huginnlabs/dataflow-browser/0.2.3)](https://badge.socket.dev/npm/package/@huginnlabs/dataflow-browser/0.2.3)
 
 HuginnLabs Dataflow Browser SDK — real-user monitoring (RUM) for web apps: page
 views, outgoing HTTP spans with cross-stack trace propagation, JS error capture,
