@@ -1,7 +1,7 @@
 {
   "name": "@huginnlabs/dataflow-browser",
-  "version": "0.2.2",
-  "description": "HuginnLabs Dataflow Browser SDK — page views, fetch/XHR spans with trace propagation, JS errors, web vitals, click breadcrumbs, opt-in Session Replay.",
+  "version": "0.2.3",
+  "description": "HuginnLabs Dataflow Browser SDK \u2014 page views, fetch/XHR spans with trace propagation, JS errors, web vitals, click breadcrumbs, opt-in Session Replay.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -48,7 +48,12 @@
     "typescript": "^5.9.3",
     "vitest": "^5.0.3"
   },
-  "dependencies": {
+  "peerDependencies": {
     "rrweb": "^2.1.6"
+  },
+  "peerDependenciesMeta": {
+    "rrweb": {
+      "optional": true
+    }
   }
 }

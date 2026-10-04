@@ -14,6 +14,11 @@ TypeScript-first.
 npm install @huginnlabs/dataflow-browser
 ```
 
+**Zero runtime dependencies.** Session Replay is opt-in and needs
+[rrweb](https://www.npmjs.com/package/rrweb) — an *optional peer*: install
+it yourself if you want replay (`npm i rrweb`), otherwise the SDK silently
+degrades to traces-only and your dependency tree stays clean.
+
 ## Quick start
 
 ### Bundler (ESM / CJS)
