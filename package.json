@@ -32,6 +32,10 @@
     "huginnlabs"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huginnlabs-dev/sdk-browser.git"
+  },
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
