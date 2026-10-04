@@ -1,4 +1,4 @@
-export const VERSION = '0.2.1';
+export const VERSION = '0.2.2';
 
 /** Header injected on eligible outgoing requests so browser + backend join one trace. */
 export const TRACE_HEADER = 'x-dataflow-trace-id';

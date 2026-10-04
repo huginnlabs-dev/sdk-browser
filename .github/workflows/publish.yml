@@ -1,0 +1,48 @@
+# Publish @huginnlabs/dataflow-browser to npm on a release tag.
+#
+# Auth = npm Trusted Publishing (OIDC): the connection is bound to this
+# repo + workflow filename, so no NPM_TOKEN secret is needed. Requires
+# npm >= 11.5.11 on the runner (Node 24 ships it).
+#
+# Trigger: push a tag `sdk-browser/vX.Y.Z` (the repo's release convention).
+# The tag must match package.json's version — a mismatch fails the job
+# before anything is published.
+
+name: publish
+
+on:
+  push:
+    tags:
+      - "sdk-browser/v*"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # npm Trusted Publishing (OIDC)
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: tag matches package.json version
+        shell: bash
+        run: |
+          PKG_VERSION="v$(node -p "require('./package.json').version")"
+          TAG="${GITHUB_REF_NAME#sdk-browser/}"
+          if [ "v$TAG" != "$PKG_VERSION" ]; then
+            echo "tag $GITHUB_REF_NAME != package.json $PKG_VERSION"
+            exit 1
+          fi
+
+      - name: install
+        run: npm ci --no-audit --no-fund
+
+      - name: build + publish (prepublishOnly builds dist)
+        run: npm publish --access public --provenance
+        env:
+          NPM_CONFIG_PROVENANCE: true

@@ -151,7 +151,7 @@ function runTeardowns() {
 }
 
 // src/version.ts
-var VERSION = "0.2.1";
+var VERSION = "0.2.2";
 var TRACE_HEADER = "x-dataflow-trace-id";
 var INGEST_PATH = "/api/v1/ingest";
 var REPLAY_PATH = "/api/v1/replay";
