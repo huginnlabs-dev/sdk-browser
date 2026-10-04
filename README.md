@@ -235,5 +235,4 @@ The browser SDK is RUM: its cost shows up as page-load latency and bundle
 size, not server throughput, so it is measured with a different harness
 (queued). The core bundle is dependency-free and the Session Replay
 dependency (rrweb) is an optional peer — install it only if you use
-replay. The uniform server-side benchmark methodology lives in
-BENCHMARKS.md (repo root of the Dataflow monorepo).
+replay. The uniform server-side benchmark methodology lives in the Dataflow monorepo `bench/`.
